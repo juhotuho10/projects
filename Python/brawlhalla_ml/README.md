@@ -1,5 +1,4 @@
 # Brawlhalla ML
----
 Exploratory project made in August 2023 because I wanted to experiment with creating an ML bot for the game Brawlhalla: https://store.steampowered.com/app/291550/Brawlhalla/
 
 Note: I haven’t trained an agent yet because it requires real-time training, and I don’t have a custom environment. Training would take several weeks, and I don’t have the time right now.

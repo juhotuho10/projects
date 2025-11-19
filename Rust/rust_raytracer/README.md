@@ -1,5 +1,4 @@
-# rust_raytracer
----
+# Rust raytracer
 A simple CPU raytracer made in June 2024
 
 This was the starting point before I started to move everything to the much larger GPU taytracer version of this project

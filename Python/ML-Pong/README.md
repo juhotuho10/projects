@@ -1,5 +1,4 @@
 #  ML-Pong
----
 Pong game I made in December 2023 with a twist, the ball behaves like a hyperactive bouncy ball, affected by exaggerated physics
 
 The ball is unpredictable, and as its speed increases over time, the game becomes quite intense

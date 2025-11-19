@@ -1,4 +1,4 @@
-#  Alcoholic Spider
+# Alcoholic Spider
 A fun web crawler suggested by a friend that fetches the HTML code from the Alko website I made back in in September 2021
 
 It extracts product data for all alcoholic beverages and 
