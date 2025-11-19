@@ -1,6 +1,7 @@
 # WeatherApp
 ---
 A nice and simple weather APP with interactive UI that uses the OpenWeather API to getch weather data for places and cities
+
 Created as the Final project for Programming 3 course in October 2023
 
 All project documentation can be found in the Documentation folder.
