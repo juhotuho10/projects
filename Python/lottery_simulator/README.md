@@ -1,7 +1,5 @@
-### Lottery Simulator
+# Lottery Simulator
 ---
-- Created in January 2019
-- One of the first projects I made
-- Completed a high school computer science course with this project
-- The project is a lottery simulator with a user interface
-- You can try to see how many years it would take to win the lottery (spoiler: quite a few)
+A lottery simulator with a user interface to estimate how many years it would take you to win the lottery if you did it every week (spoiler: quite a few)
+
+One of the first larger projects I made in January 2019 to complete a high school computer science course with this project
