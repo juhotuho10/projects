@@ -1,5 +1,5 @@
-### WeatherApp:
-
+## WeatherApp
+---
 - Created in October 2023
 - Final project for Programming 3 course
 - The project was supposed to be a group assignment, but in reality, I completed it on my own

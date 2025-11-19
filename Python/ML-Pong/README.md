@@ -1,5 +1,5 @@
-###  ML-Pong:
-
+###  ML-Pong
+---
 - Created in December 2023
 - It's Pong, but with a twist: the ball behaves like a hyperactive bouncy ball, affected by exaggerated physics
 - The ball is unpredictable, and as its speed increases over time, the game becomes quite intense

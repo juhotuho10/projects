@@ -1,5 +1,5 @@
-###  ML-Snake:
-
+###  ML-Snake
+---
 - Created in August 2022
 - A modified Snake game driven by an ML algorithm with a custom reward function and vision signals
 - The environment evolved through iterative changes, with each new class inheriting from the previous one, resulting in the latest iteration (SnekEnv12) being the most refined

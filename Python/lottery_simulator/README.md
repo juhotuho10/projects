@@ -1,5 +1,5 @@
-### Lottery Simulator:
-
+### Lottery Simulator
+---
 - Created in January 2019
 - One of the first projects I made
 - Completed a high school computer science course with this project

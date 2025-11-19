@@ -1,5 +1,5 @@
-###  Brawlhalla ML:
-
+##  Brawlhalla ML
+---
 - Created in August 2023
 - Wanted to experiment with creating an ML bot for the game Brawlhalla: https://store.steampowered.com/app/291550/Brawlhalla/
 

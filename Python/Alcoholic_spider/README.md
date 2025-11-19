@@ -1,7 +1,6 @@
-###  Alcoholic Spider:
-
+#  Alcoholic Spider
 - Created in September 2021
-- 
+  
 - finally fixed again, YAY
 - NOTE 1: The program NEEDS firefox to be installed, because we use the default user firefox profile with the webdrive to access Alko website
 - also the way we get the default profile is constrained to windows only
