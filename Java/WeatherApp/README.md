@@ -7,6 +7,7 @@ Created as the Final project for Programming 3 course in October 2023
 All project documentation can be found in the Documentation folder.
 
 Does not run without your own API key
+
 To run the application, open the command prompt and execute:
 
 ```mvn package```
