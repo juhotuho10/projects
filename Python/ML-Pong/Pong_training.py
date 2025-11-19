@@ -1,18 +1,14 @@
 import numpy as np
-import gymnasium as gym
-import stable_baselines3
-import cv2
 import os
 import time
 
 from stable_baselines3 import PPO
 from Pong_train_env import Pong_train_env
 
-from stable_baselines3.common import results_plotter
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.results_plotter import load_results, ts2xy, plot_results
-from stable_baselines3.common.noise import NormalActionNoise
+from stable_baselines3.common.results_plotter import load_results, ts2xy
 from stable_baselines3.common.callbacks import BaseCallback
+
 
 # save on best reward, function provided in stable_baselines3 examples
 class SaveOnBestTrainingRewardCallback(BaseCallback):
@@ -25,12 +21,13 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
       It must contains the file created by the ``Monitor`` wrapper.
     :param verbose: Verbosity level.
     """
+
     def __init__(self, check_freq: int, log_dir: str, verbose: int = 1):
         super(SaveOnBestTrainingRewardCallback, self).__init__(verbose)
         self.check_freq = check_freq
         self.log_dir = log_dir
 
-        self.save_path = os.path.join(log_dir, 'best_model')
+        self.save_path = os.path.join(log_dir, "best_model")
 
         self.best_mean_reward = -np.inf
 
@@ -41,9 +38,8 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self.check_freq == 0:
-
             # Retrieve training reward
-            x, y = ts2xy(load_results(self.log_dir), 'timesteps')
+            x, y = ts2xy(load_results(self.log_dir), "timesteps")
 
             if len(x) > 0:
                 # Mean training reward over the last 100 episodes
@@ -62,6 +58,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
         return True
 
+
 TIMESTEPS = 20_000
 version = 1
 
@@ -69,7 +66,7 @@ env = Pong_train_env()
 env.reset()
 
 # Create log dir
-log_dir = f"logs/Pong-{version}/{int(time.time())}/"
+log_dir = f"Pong-{version}/{int(time.time())}/"
 
 os.makedirs(log_dir, exist_ok=True)
 
@@ -83,6 +80,3 @@ callback = SaveOnBestTrainingRewardCallback(check_freq=5000, log_dir=log_dir, ve
 
 while True:
     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="Events", callback=callback)
-
-
- 
