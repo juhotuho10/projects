@@ -11,11 +11,31 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Scanner;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 
 
 public class OpenWeatherMapAPI implements iAPI {
 
-    private final String API_KEY = "18fcf98ffc08cda100a98a46033d36ed";
+    private final String API_KEY;
+
+    public OpenWeatherMapAPI() throws IOException {
+        Path path = Paths.get("api_key.txt");
+        if (!Files.exists(path)) {
+            throw new IOException("API key file not found: " + path.toAbsolutePath());
+        }
+    this.API_KEY = Files.readString(path).trim();
+}
+
+    private String readApiKeyFromFile(String filename) throws IOException {
+        Path path = Paths.get(filename);
+        if (!Files.exists(path)) {
+            throw new IOException("API key file not found: " + filename);
+        }
+        return Files.readString(path).trim();
+    }
 
     // Error handling for city names
     private void validateCityName(String city) {

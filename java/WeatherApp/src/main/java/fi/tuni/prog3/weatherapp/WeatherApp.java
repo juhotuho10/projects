@@ -55,11 +55,19 @@ public class WeatherApp extends Application {
     private HBox smallPaneContainer = new HBox(10);
     ListView<String> historyListView = new ListView<>(); // Create ListView
     private ArrayList<String> searchHistory = new ArrayList<>(); // Store recent searches
+    private OpenWeatherMapAPI api;
 
-    private OpenWeatherMapAPI api = new OpenWeatherMapAPI();
+    public WeatherApp() {
+        try {
+            this.api = new OpenWeatherMapAPI();
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Failed to read API key");
+            Platform.exit();
+        }
+    }
+
     private FileHandler filehandler = new FileHandler();
-
-
 
     /**
      * Initializes and displays the primary stage of the application.
