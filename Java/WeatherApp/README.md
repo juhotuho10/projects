@@ -3,6 +3,8 @@ A nice and simple weather APP with interactive UI that uses the OpenWeather API 
 
 Created as the Final project for Programming 3 course in October 2023
 
+Sadly the free and open forecast API has been deprecated for free API keys so it gives a 401 error
+
 All project documentation can be found in the Documentation folder.
 
 Does not run without your own API key
