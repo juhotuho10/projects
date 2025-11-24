@@ -3,9 +3,7 @@ A modified Snake game driven by an ML algorithm with a custom reward function an
 
 The environment evolved through iterative changes, with each new class inheriting from the previous one, resulting in the latest iteration (SnekEnv12) being the most refined
 
-<div align="center">
-  ![video](media/Demo_recording.mp4)
-</div>
+![video](media/Demo_recording.mp4)
 
 
 ### Running the model
