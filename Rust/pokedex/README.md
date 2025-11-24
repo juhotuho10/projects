@@ -9,7 +9,7 @@ I thought the example was pretty cool and I wanted to extend it more to try and 
   <img src="media/pokedex_example.gif">
 </div>
 
-🔊 **[video demo with sound](media/pokedex_video_example.mp4)**
+🔊 **[video demo with sound](https://imgur.com/pyPtuwQ)**
 
 If you have Rust installed, you can compile and run the project with:
 ```
