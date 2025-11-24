@@ -4,7 +4,7 @@ Pong game I made in December 2023 with a twist, the ball behaves like a hyperact
 The ball is unpredictable, and as its speed increases over time, the game becomes quite intense
 
 <div align="center">
-  <video src="media/Demo_recording.mp4" width="600" controls></video>
+  ![video](media/Demo_recording.mp4)
 </div>
 
 
