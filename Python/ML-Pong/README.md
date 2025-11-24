@@ -3,7 +3,9 @@ Pong game I made in December 2023 with a twist, the ball behaves like a hyperact
 
 The ball is unpredictable, and as its speed increases over time, the game becomes quite intense
 
-<video src="media/Demo_recording.mp4" width="600" controls></video>
+<div align="center">
+  <img src="media/Demo_recording.gif">
+</div>
 
 
 You can play against the ML model, and the game keeps score of points won by each side.

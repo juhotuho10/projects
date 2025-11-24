@@ -3,7 +3,9 @@ A modified Snake game driven by an ML algorithm with a custom reward function an
 
 The environment evolved through iterative changes, with each new class inheriting from the previous one, resulting in the latest iteration (SnekEnv12) being the most refined
 
-<video src="media/Demo_recording.mp4" width="600" controls></video>
+<div align="center">
+  <img src="media/Demo_recording.gif">
+</div>
 
 ### Running the model
 You can run the pre-trained model using snek_game_loading.py to see it in action.
