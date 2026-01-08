@@ -6,6 +6,6 @@ Done as a part of Operating Systems course to learn more about sytemcalls and th
 
 Running the program requires argument: `--copies N` where 0 < N < 129
 
-Can be built just by running `make`
+Can be built just by running `make` which uses `gcc` to compile
 
 Requires Linux for the systemcalls
