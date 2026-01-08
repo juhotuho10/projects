@@ -4,6 +4,8 @@ Program that forks itself N times, and plays ping-pong with the forked processes
 
 Done as a part of Operating Systems course to learn more about sytemcalls and their usage
 
+Running the program requires argument: `--copies N` where 0 < N < 129
+
 Can be built just by running `make`
 
 Requires Linux for the systemcalls
