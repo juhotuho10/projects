@@ -8,3 +8,4 @@ How to play:
 - calculate the mines for wanted difficulty then set the mines and star the game
 - In the game, left-click opens a tile, and right-click places a flag
 - if you hit a mine, you lose, if you clear all the non-mined tiles, you win
+![minesweeeper](media/minesweeper.png)
