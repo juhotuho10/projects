@@ -13,3 +13,5 @@ and then:
 
 Note: You need to have Java and Maven installed on your system.
 
+![wordle](./media/wordle.png)
+
