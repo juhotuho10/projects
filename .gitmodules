@@ -1,0 +1,4 @@
+[submodule "Kotlin/agrenier-gnss_mimir/mimir"]
+	path = Kotlin/agrenier-gnss_mimir/mimir
+	url = https://github.com/agrenier-gnss/mimir
+	branch = experimental
