@@ -1,5 +1,6 @@
 # Mimir
 Opensource university data research project that I contributed to a lot during a project course
+
 I do not own the project, this is just here as a link to the original project
 
 To quote the original github readme:
@@ -13,7 +14,7 @@ To quote the original github readme:
 
     Both smartphone and smartwatch apps are available on the repository, with a common logging library. 
 ```
-I contributed both to the phone and the smartwatch application and the developement was done with Kotlin and I used Android studio for developement as well as for testing the application using the built in emulator
+I contributed both to the phone and the smartwatch application and the development  was done with Kotlin and I used Android studio for development  as well as for testing the application using the built in emulator
 
 ![contribution statistics](media/contribution_statistics.png)
 
