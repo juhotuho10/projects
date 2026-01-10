@@ -15,9 +15,10 @@ use iced_gif::{Frames, Gif};
 use rodio::{Decoder, OutputStream, Sink};
 
 pub fn main() -> iced::Result {
-    iced::application(Pokedex::title, Pokedex::update, Pokedex::view)
-        .theme(|_| Theme::Dark)
-        .run_with(Pokedex::new)
+    iced::application(Pokedex::new, Pokedex::update, Pokedex::view)
+        .theme(Theme::Dark)
+        .title(Pokedex::title)
+        .run()
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -34,7 +35,6 @@ enum PokemonTypes {
     Double { type_1: Handle, type_2: Handle },
 }
 
-#[allow(clippy::large_enum_variant)]
 // state of the program
 #[derive(Debug)]
 enum Pokedex {

@@ -5,19 +5,17 @@ edition = "2024"
 
 
 [dependencies]
-iced = { version = "0.13",  default-features = false, features = ["image", "tokio", "tiny-skia"] }
+iced = { version = "0.14.0",  default-features = false, features = ["image", "tokio", "tiny-skia"] }
 rodio = { version = "0.20",  default-features = false, features = ["vorbis"] }
 serde_json = { version = "1.0",  default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 reqwest = { version = "0.12", default-features = false, features = ["json",  "rustls-tls"] }
 rand = {version = "0.8" , default-features = false, features = ["getrandom"]}
 futures-timer = {version = "3.0",  default-features = false }
-iced_gif = {version = "0.13",  default-features = false, features = ["async-fs"]}
+iced_gif = {version = "0.14.0",  default-features = false, features = ["async-fs"]}
 
 [profile.release]
 codegen-units = 1
 lto = "fat"
 opt-level = 3
-panic = "abort"
 strip = true
-
