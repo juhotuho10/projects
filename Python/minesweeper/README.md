@@ -1,5 +1,5 @@
 # Minesweeper
-A simple Minesweeper game with a way to set the grid size and number of mines
+A Minesweeper game with a way to set the grid size and number of mines
 
 Created in November 2021 as final project for a university Programming 1 course
 

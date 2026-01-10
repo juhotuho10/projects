@@ -1,5 +1,5 @@
 # Wordle
-Simple wordlegame made as a university project in October 2023
+Wordle game with GUI made with Java as a university project in October 2023
 
 Randomizes the word to guess everytime and supports different length words
 

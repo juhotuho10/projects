@@ -1,5 +1,5 @@
 # LLM with RNN 
-simple character "LLM" implemented from RNN components as part of a Machine Learning course 
+A Character "LLM" implemented from RNN components as part of a Machine Learning course 
 
 the RNN keeps track of it's own learned internal state and uses that as well as the currenct charater to predict upcoming characters
 
