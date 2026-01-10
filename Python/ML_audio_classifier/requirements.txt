@@ -1,0 +1,6 @@
+keras
+pydub
+numpy
+librosa
+scipy
+matplotlib

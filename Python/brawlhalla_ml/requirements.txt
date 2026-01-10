@@ -1,0 +1,10 @@
+pillow
+dxcam
+pywin32
+numpy
+pynput
+gymnasium
+gym
+stable-baselines3
+opencv-python
+brawlhalla-ml
