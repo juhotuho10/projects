@@ -7,3 +7,4 @@ Be sure to see the [Fully featured GPU raytracer](https://github.com/juhotuho10/
 
 ![Ray traced spehere](./media/raytraced_spere.png)
 
+If you have rust installed, you can run `cargo run --release` to compile and run the program
