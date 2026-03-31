@@ -9,10 +9,16 @@ use iced::{
     },
 };
 
+use rand::{
+    RngExt, SeedableRng,
+    rand_core::UnwrapErr,
+    rngs::{StdRng, SysRng},
+};
+
 use std::{sync::Arc, time::Duration};
 
 use iced_gif::{Frames, Gif};
-use rodio::{Decoder, OutputStream, Sink};
+use rodio::{Decoder, DeviceSinkBuilder, Player};
 
 pub fn main() -> iced::Result {
     iced::application(Pokedex::new, Pokedex::update, Pokedex::view)
@@ -59,10 +65,10 @@ impl Pokedex {
     fn play_ogg_from_bytes(option_bytes: Option<Vec<u8>>) {
         std::thread::spawn(move || {
             if let Some(ogg_bytes) = option_bytes
-                && let Ok((_stream, stream_handle)) = OutputStream::try_default()
-                && let Ok(sink) = Sink::try_new(&stream_handle)
+                && let Ok(stream_handle) = DeviceSinkBuilder::open_default_sink()
                 && let Ok(source) = Decoder::new(std::io::Cursor::new(ogg_bytes))
             {
+                let sink = Player::connect_new(stream_handle.mixer());
                 sink.append(source);
                 sink.set_volume(0.02);
                 sink.sleep_until_end();
@@ -187,12 +193,11 @@ impl Pokemon {
     }
 
     async fn search() -> Result<Pokemon, Error> {
-        use rand::Rng;
         use serde::Deserialize;
 
         let id = {
-            let mut rng = rand::rngs::OsRng;
-            rng.gen_range(1..=Pokemon::MAX_ID)
+            let mut rng = StdRng::from_rng(&mut UnwrapErr(SysRng));
+            rng.random_range(1..=Pokemon::MAX_ID)
         };
 
         // -------------------------- pokemon entry struct --------------------------
