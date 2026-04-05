@@ -9,11 +9,7 @@ use iced::{
     },
 };
 
-use rand::{
-    RngExt, SeedableRng,
-    rand_core::UnwrapErr,
-    rngs::{StdRng, SysRng},
-};
+use rand::RngExt;
 
 use std::{
     collections::HashMap,
@@ -226,10 +222,7 @@ impl Pokemon {
     async fn search() -> Result<Pokemon, Error> {
         use serde::Deserialize;
 
-        let id = {
-            let mut rng = StdRng::from_rng(&mut UnwrapErr(SysRng));
-            rng.random_range(1..=Pokemon::MAX_ID)
-        };
+        let id = rand::rng().random_range(1..=Pokemon::MAX_ID);
 
         // -------------------------- pokemon entry struct --------------------------
 
