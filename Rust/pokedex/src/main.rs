@@ -15,10 +15,20 @@ use rand::{
     rngs::{StdRng, SysRng},
 };
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex, OnceLock},
+    time::Duration,
+};
 
 use iced_gif::{Frames, Gif};
 use rodio::{Decoder, DeviceSinkBuilder, Player};
+
+static TYPE_IMAGE_CACHE: OnceLock<Mutex<HashMap<String, Handle>>> = OnceLock::new();
+
+fn cache() -> &'static Mutex<HashMap<String, Handle>> {
+    TYPE_IMAGE_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
 
 pub fn main() -> iced::Result {
     iced::application(Pokedex::new, Pokedex::update, Pokedex::view)
@@ -65,10 +75,12 @@ impl Pokedex {
     fn play_ogg_from_bytes(option_bytes: Option<Vec<u8>>) {
         std::thread::spawn(move || {
             if let Some(ogg_bytes) = option_bytes
-                && let Ok(stream_handle) = DeviceSinkBuilder::open_default_sink()
+                && let Ok(mut stream_handle) = DeviceSinkBuilder::open_default_sink()
                 && let Ok(source) = Decoder::new(std::io::Cursor::new(ogg_bytes))
             {
+                stream_handle.log_on_drop(false);
                 let sink = Player::connect_new(stream_handle.mixer());
+
                 sink.append(source);
                 sink.set_volume(0.02);
                 sink.sleep_until_end();
@@ -251,7 +263,7 @@ impl Pokemon {
                 })
             };
 
-            let fetch_pokemon_images = || {
+            let fetch_element_images = || {
                 futures::FutureExt::boxed(async move {
                     let url = format!("https://pokeapi.co/api/v2/pokemon/{id}");
                     let mut pokemon_data = reqwest::get(&url).await?.json::<PokemonData>().await?;
@@ -293,7 +305,7 @@ impl Pokemon {
 
             futures::future::try_join4(
                 async_retries(fetch_pokemon_entry, 4),
-                async_retries(fetch_pokemon_images, 4),
+                async_retries(fetch_element_images, 4),
                 Self::fetch_pokemon_image(id),
                 fetch_ogg,
             )
@@ -347,6 +359,16 @@ impl Pokemon {
 
     // for getting pokemon type IMG to display
     async fn fetch_type_images(pokemon_type: String) -> Result<Handle, reqwest::Error> {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if let Ok(cache_map) = cache().lock()
+                && let Some(handle) = cache_map.get(&pokemon_type).cloned()
+            {
+                println!("getting cached image: {pokemon_type}");
+                return Ok(handle);
+            }
+        }
+
         let upper_cased = {
             let mut chars = pokemon_type.chars();
             match chars.next() {
@@ -359,8 +381,13 @@ impl Pokemon {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let bytes = reqwest::get(&url).await?.bytes().await?;
+            let type_handle = Handle::from_bytes(bytes);
 
-            Ok(Handle::from_bytes(bytes))
+            if let Ok(mut cache_map) = cache().lock() {
+                cache_map.insert(pokemon_type, type_handle.clone());
+            }
+
+            Ok(type_handle)
         }
 
         #[cfg(target_arch = "wasm32")]
