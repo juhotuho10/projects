@@ -9,6 +9,8 @@ use iced::{
     },
 };
 
+use bytes::Bytes;
+
 use rand::RngExt;
 
 use std::{
@@ -73,6 +75,7 @@ enum PokemonTypes {
 }
 
 // state of the program
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 enum Pokedex {
     Loading,
@@ -93,7 +96,7 @@ impl Pokedex {
         Task::perform(Pokemon::search(), Message::PokemonFound)
     }
 
-    fn play_ogg_from_bytes(option_bytes: Option<Vec<u8>>) {
+    fn play_ogg_from_bytes(option_bytes: Option<Bytes>) {
         if let Some(ogg_bytes) = option_bytes
             && let Ok(source) = Decoder::new(io::Cursor::new(ogg_bytes))
         {
@@ -174,7 +177,7 @@ struct Pokemon {
     description: String,
     gif_frames: Arc<Frames>,
     element_types: PokemonTypes,
-    cry_sound_bytes: Option<Vec<u8>>,
+    cry_sound_bytes: Option<Bytes>,
 }
 
 impl Pokemon {
@@ -312,7 +315,7 @@ impl Pokemon {
                 );
                 let resp = reqwest::get(&url).await?;
                 let bytes = resp.bytes().await?;
-                Ok(bytes.to_vec())
+                Ok(bytes)
             };
 
             futures::future::try_join4(

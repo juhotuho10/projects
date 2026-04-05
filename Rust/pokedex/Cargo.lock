@@ -2644,6 +2644,7 @@ dependencies = [
 name = "pokedex"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "futures-timer",
  "iced",
  "iced_gif",

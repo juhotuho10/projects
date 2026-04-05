@@ -13,6 +13,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json",  "ru
 rand = {version = "0.10.0" , default-features = false, features = ["thread_rng"]}
 futures-timer = {version = "3.0",  default-features = false }
 iced_gif = {version = "0.14.0",  default-features = false, features = ["async-fs"]}
+bytes = "1.11.1"
 
 [profile.release]
 codegen-units = 1
