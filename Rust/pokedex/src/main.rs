@@ -278,17 +278,17 @@ impl Pokemon {
             let fetch_element_images = || {
                 futures::FutureExt::boxed(async move {
                     let url = format!("https://pokeapi.co/api/v2/pokemon/{id}");
-                    let mut pokemon_data = reqwest::get(&url).await?.json::<PokemonData>().await?;
+                    let pokemon_data = reqwest::get(&url).await?.json::<PokemonData>().await?;
 
-                    pokemon_data
+                    let mut type_names: Vec<&str> = pokemon_data
                         .types
-                        .sort_by(|a, b| a.type_info.name.cmp(&b.type_info.name));
-
-                    let image_futures: Vec<_> = pokemon_data
-                        .types
-                        .into_iter()
-                        .map(|t| Self::fetch_type_images(t.type_info.name))
+                        .iter()
+                        .map(|x| x.type_info.name.as_str())
                         .collect();
+
+                    type_names.sort();
+
+                    let image_futures = type_names.into_iter().map(Self::fetch_type_images);
 
                     let mut element_images: Vec<Handle> =
                         futures::future::try_join_all(image_futures).await?;
@@ -370,11 +370,11 @@ impl Pokemon {
     }
 
     // for getting pokemon type IMG to display
-    async fn fetch_type_images(pokemon_type: String) -> Result<Handle, reqwest::Error> {
+    async fn fetch_type_images(pokemon_type: &str) -> Result<Handle, reqwest::Error> {
         #[cfg(not(target_arch = "wasm32"))]
         {
             if let Ok(cache_map) = cache().lock()
-                && let Some(handle) = cache_map.get(&pokemon_type).cloned()
+                && let Some(handle) = cache_map.get(pokemon_type).cloned()
             {
                 println!("getting cached image: {pokemon_type}");
                 return Ok(handle);
@@ -396,7 +396,7 @@ impl Pokemon {
             let type_handle = Handle::from_bytes(bytes);
 
             if let Ok(mut cache_map) = cache().lock() {
-                cache_map.insert(pokemon_type, type_handle.clone());
+                cache_map.insert(pokemon_type.to_owned(), type_handle.clone());
             }
 
             Ok(type_handle)
