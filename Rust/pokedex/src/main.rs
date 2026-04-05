@@ -17,17 +17,42 @@ use rand::{
 
 use std::{
     collections::HashMap,
+    io,
     sync::{Arc, Mutex, OnceLock},
     time::Duration,
 };
 
 use iced_gif::{Frames, Gif};
-use rodio::{Decoder, DeviceSinkBuilder, Player};
+use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink, Player};
 
 static TYPE_IMAGE_CACHE: OnceLock<Mutex<HashMap<String, Handle>>> = OnceLock::new();
 
 fn cache() -> &'static Mutex<HashMap<String, Handle>> {
     TYPE_IMAGE_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+struct SinkHandle {
+    _handle: MixerDeviceSink,
+    sink: Player,
+}
+
+static STREAM_HANDLE: OnceLock<SinkHandle> = OnceLock::new();
+
+fn get_sink() -> &'static SinkHandle {
+    STREAM_HANDLE.get_or_init(|| {
+        let mut stream_handle =
+            DeviceSinkBuilder::open_default_sink().expect("Failed to open default audio sink");
+
+        stream_handle.log_on_drop(false);
+
+        let sink = Player::connect_new(stream_handle.mixer());
+        sink.set_volume(0.02);
+
+        SinkHandle {
+            _handle: stream_handle,
+            sink,
+        }
+    })
 }
 
 pub fn main() -> iced::Result {
@@ -73,19 +98,13 @@ impl Pokedex {
     }
 
     fn play_ogg_from_bytes(option_bytes: Option<Vec<u8>>) {
-        std::thread::spawn(move || {
-            if let Some(ogg_bytes) = option_bytes
-                && let Ok(mut stream_handle) = DeviceSinkBuilder::open_default_sink()
-                && let Ok(source) = Decoder::new(std::io::Cursor::new(ogg_bytes))
-            {
-                stream_handle.log_on_drop(false);
-                let sink = Player::connect_new(stream_handle.mixer());
-
-                sink.append(source);
-                sink.set_volume(0.02);
-                sink.sleep_until_end();
-            }
-        });
+        if let Some(ogg_bytes) = option_bytes
+            && let Ok(source) = Decoder::new(io::Cursor::new(ogg_bytes))
+        {
+            let sink = &get_sink().sink;
+            sink.stop();
+            sink.append(source);
+        }
     }
 
     // changes the title based on state
