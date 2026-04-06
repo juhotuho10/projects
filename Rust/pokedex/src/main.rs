@@ -387,7 +387,7 @@ impl Pokemon {
         let upper_cased = {
             let mut chars = pokemon_type.chars();
             match chars.next() {
-                None => String::new(), // empty string
+                None => unreachable!("Pokemon type shouldn't be empty"),
                 Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
             }
         };
