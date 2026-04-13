@@ -5,12 +5,12 @@ edition = "2024"
 
 
 [dependencies]
-iced = { version = "0.14.0",  default-features = false, features = ["image", "tokio", "tiny-skia"] }
+iced = { version = "0.14.0",  default-features = false, features = ["image", "smol", "tiny-skia"] }
 rodio = { version = "0.22",  default-features = false, features = ["vorbis", "playback"] }
 serde_json = { version = "1.0",  default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
-reqwest = { version = "0.12", default-features = false, features = ["json",  "rustls-tls"] }
-rand = {version = "0.10.0" , default-features = false, features = ["thread_rng"]}
+surf = { version = "2.3", default-features = false, features = ["curl-client"] }
+rand = {version = "0.10.1" , default-features = false, features = ["thread_rng"]}
 futures-timer = {version = "3.0",  default-features = false }
 iced_gif = {version = "0.14.0",  default-features = false, features = ["async-fs"]}
 bytes = "1.11.1"

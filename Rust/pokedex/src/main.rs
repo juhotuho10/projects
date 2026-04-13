@@ -17,7 +17,7 @@ use std::{
     collections::HashMap,
     io,
     sync::{Arc, Mutex, OnceLock},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use iced_gif::{Frames, Gif};
@@ -27,6 +27,32 @@ static TYPE_IMAGE_CACHE: OnceLock<Mutex<HashMap<String, Handle>>> = OnceLock::ne
 
 fn cache() -> &'static Mutex<HashMap<String, Handle>> {
     TYPE_IMAGE_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+static CLIENT_CACHE: OnceLock<surf::Client> = OnceLock::new();
+
+fn client_cache() -> &'static surf::Client {
+    CLIENT_CACHE.get_or_init(surf::Client::new)
+}
+
+static RUNTIM_CACHE: OnceLock<Mutex<Counter>> = OnceLock::new();
+
+fn runtime_cache() -> &'static Mutex<Counter> {
+    RUNTIM_CACHE.get_or_init(|| Mutex::new(Counter { total: 0, count: 0 }))
+}
+
+struct Counter {
+    total: u32,
+    count: u32,
+}
+impl Counter {
+    fn avg(&self) -> u32 {
+        self.total / self.count
+    }
+    fn add(&mut self, time: u32) {
+        self.total += time;
+        self.count += 1;
+    }
 }
 
 struct SinkHandle {
@@ -223,6 +249,7 @@ impl Pokemon {
     }
 
     async fn search() -> Result<Pokemon, Error> {
+        let now = Instant::now();
         use serde::Deserialize;
 
         let id = rand::rng().random_range(1..=Pokemon::MAX_ID);
@@ -273,7 +300,7 @@ impl Pokemon {
                 futures::FutureExt::boxed(async move {
                     {
                         let url = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
-                        reqwest::get(&url).await?.json::<Entry>().await
+                        client_cache().get(&url).await?.body_json::<Entry>().await
                     }
                 })
             };
@@ -281,7 +308,11 @@ impl Pokemon {
             let fetch_element_images = || {
                 futures::FutureExt::boxed(async move {
                     let url = format!("https://pokeapi.co/api/v2/pokemon/{id}");
-                    let pokemon_data = reqwest::get(&url).await?.json::<PokemonData>().await?;
+                    let pokemon_data = client_cache()
+                        .get(&url)
+                        .await?
+                        .body_json::<PokemonData>()
+                        .await?;
 
                     let mut type_names: Vec<&str> = pokemon_data
                         .types
@@ -313,8 +344,8 @@ impl Pokemon {
                 let url = format!(
                     "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/{id}.ogg"
                 );
-                let resp = reqwest::get(&url).await?;
-                let bytes = resp.bytes().await?;
+                let mut resp = client_cache().get(&url).await?;
+                let bytes: bytes::Bytes = resp.body_bytes().await?.into();
                 Ok(bytes)
             };
 
@@ -345,6 +376,11 @@ impl Pokemon {
 
         let frames = Frames::from_bytes(frame_bytes).map_err(|_| Error::APIError)?;
 
+        let time_taken = now.elapsed().as_millis();
+        let mut cached_time = runtime_cache().lock().unwrap();
+        cached_time.add(time_taken as u32);
+
+        println!("avg time taken: {}", cached_time.avg());
         Ok(Pokemon {
             number: id,
             name: entry.name.to_uppercase(),
@@ -356,14 +392,14 @@ impl Pokemon {
     }
 
     // for getting pokemon IMG to display
-    async fn fetch_pokemon_image(id: u16) -> Result<Vec<u8>, reqwest::Error> {
+    async fn fetch_pokemon_image(id: u16) -> Result<Vec<u8>, surf::Error> {
         let url = format!(
             "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/{id}.gif"
         );
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let bytes = reqwest::get(&url).await?.bytes().await?;
+            let bytes: bytes::Bytes = client_cache().get(&url).await?.body_bytes().await?.into();
 
             Ok(bytes.to_vec())
         }
@@ -373,7 +409,7 @@ impl Pokemon {
     }
 
     // for getting pokemon type IMG to display
-    async fn fetch_type_images(pokemon_type: &str) -> Result<Handle, reqwest::Error> {
+    async fn fetch_type_images(pokemon_type: &str) -> Result<Handle, surf::Error> {
         #[cfg(not(target_arch = "wasm32"))]
         {
             if let Ok(cache_map) = cache().lock()
@@ -395,7 +431,7 @@ impl Pokemon {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let bytes = reqwest::get(&url).await?.bytes().await?;
+            let bytes: bytes::Bytes = client_cache().get(&url).await?.body_bytes().await?.into();
             let type_handle = Handle::from_bytes(bytes);
 
             if let Ok(mut cache_map) = cache().lock() {
@@ -442,8 +478,8 @@ enum Error {
     LanguageError,
 }
 
-impl From<reqwest::Error> for Error {
-    fn from(error: reqwest::Error) -> Error {
+impl From<surf::Error> for Error {
+    fn from(error: surf::Error) -> Error {
         dbg!(error);
         Error::APIError
     }
