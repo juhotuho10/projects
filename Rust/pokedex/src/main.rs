@@ -303,7 +303,7 @@ impl Pokemon {
                 futures::FutureExt::boxed(async move {
                     {
                         let url = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
-                        client_cache().get(&url).await?.body_json::<Entry>().await
+                        client_cache().get(&url).recv_json::<Entry>().await
                     }
                 })
             };
@@ -311,11 +311,7 @@ impl Pokemon {
             let fetch_element_images = || {
                 futures::FutureExt::boxed(async move {
                     let url = format!("https://pokeapi.co/api/v2/pokemon/{id}");
-                    let pokemon_data = client_cache()
-                        .get(&url)
-                        .await?
-                        .body_json::<PokemonData>()
-                        .await?;
+                    let pokemon_data = client_cache().get(&url).recv_json::<PokemonData>().await?;
 
                     let mut type_names: Vec<&str> = pokemon_data
                         .types
@@ -347,8 +343,7 @@ impl Pokemon {
                 let url = format!(
                     "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/{id}.ogg"
                 );
-                let mut resp = client_cache().get(&url).await?;
-                let bytes: bytes::Bytes = resp.body_bytes().await?.into();
+                let bytes: bytes::Bytes = client_cache().get(&url).recv_bytes().await?.into();
                 Ok(bytes)
             };
 
@@ -402,7 +397,7 @@ impl Pokemon {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let bytes: bytes::Bytes = client_cache().get(&url).await?.body_bytes().await?.into();
+            let bytes: bytes::Bytes = client_cache().get(&url).recv_bytes().await?.into();
 
             Ok(bytes.to_vec())
         }
@@ -434,7 +429,7 @@ impl Pokemon {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let bytes: bytes::Bytes = client_cache().get(&url).await?.body_bytes().await?.into();
+            let bytes: bytes::Bytes = client_cache().get(&url).recv_bytes().await?.into();
             let type_handle = Handle::from_bytes(bytes);
 
             if let Ok(mut cache_map) = cache().lock() {
