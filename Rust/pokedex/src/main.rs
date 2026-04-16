@@ -125,10 +125,8 @@ impl Pokedex {
         Task::perform(Pokemon::search(), Message::PokemonFound)
     }
 
-    fn play_ogg_from_bytes(option_bytes: Option<Bytes>) {
-        if let Some(ogg_bytes) = option_bytes
-            && let Ok(source) = Decoder::new(io::Cursor::new(ogg_bytes))
-        {
+    fn play_ogg_from_bytes(ogg_bytes: Bytes) {
+        if let Ok(source) = Decoder::new(io::Cursor::new(ogg_bytes)) {
             let sink = &get_sink().sink;
             sink.stop();
             sink.append(source);
@@ -151,8 +149,8 @@ impl Pokedex {
     // and returns the task action to be taken
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::PokemonFound(Ok(mut pokemon)) => {
-                Self::play_ogg_from_bytes(pokemon.cry_sound_bytes.take());
+            Message::PokemonFound(Ok(pokemon)) => {
+                Self::play_ogg_from_bytes(pokemon.cry_sound_bytes.clone());
                 *self = Pokedex::Loaded { pokemon };
 
                 Task::none()
@@ -206,7 +204,7 @@ struct Pokemon {
     description: String,
     gif_frames: Arc<Frames>,
     element_types: PokemonTypes,
-    cry_sound_bytes: Option<Bytes>,
+    cry_sound_bytes: Bytes,
 }
 
 impl Pokemon {
@@ -390,7 +388,7 @@ impl Pokemon {
             description: filtered_description,
             gif_frames: Arc::new(frames),
             element_types: element_images,
-            cry_sound_bytes: Some(ogg_bytes),
+            cry_sound_bytes: ogg_bytes,
         })
     }
 
