@@ -447,25 +447,21 @@ impl Pokemon {
     }
 }
 
-async fn async_retries<F, T, E>(mut f: F, retries: u64) -> Result<T, E>
+async fn async_retries<F, Fut, T, E>(mut f: F, retries: u64) -> Result<T, E>
 where
-    F: FnMut() -> futures::future::BoxFuture<'static, Result<T, E>>,
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, E>>,
     E: std::fmt::Debug,
 {
     for attempt in 0..=retries {
-        let result = f().await;
-
-        match result {
+        match f().await {
             Ok(v) => return Ok(v),
             Err(e) => {
                 if attempt == retries {
-                    // return failure
                     return Err(e);
-                } else {
-                    // retry
-                    eprintln!("Attempt {} failed: {:?}", attempt + 1, e);
-                    futures_timer::Delay::new(Duration::from_millis(300 * (attempt + 1))).await;
                 }
+                eprintln!("Attempt {} failed: {:?}", attempt + 1, e);
+                futures_timer::Delay::new(Duration::from_millis(300 * (attempt + 1))).await;
             }
         }
     }
