@@ -1,102 +1,115 @@
-import os
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.io import read_image
-from torchvision import transforms
-
-class CustomImageDataset(Dataset):
-    def __init__(self, img_dirs):
-        # transforming image type to floats
-        self.transform = transforms.ConvertImageDtype(torch.float)
-        self.img_labels = []
-        self.images = []
-        # load images the their respective labels into lists
-        for id, img_dir in enumerate(img_dirs):
-            for img_file in os.listdir(img_dir):
-                img_path = os.path.join(img_dir, img_file)
-
-                image = read_image(img_path)
-                image = self.transform(image)
-                self.images.append(image)
-
-                self.img_labels.append(id)
-
-    def __len__(self):
-        # define the len() function for the class 
-        return len(self.images)
-
-    def __getitem__(self, idx):
-        # define a way to index the class
-        return self.images[idx], self.img_labels[idx]
+import numpy as np
+from prettytable import PrettyTable
 
 
-img_dirs = ['GTSRB_subset_2/class1/', 'GTSRB_subset_2/class2/']
-
-# creating the dataset and dividing it to train and test
-dataset = CustomImageDataset(img_dirs=img_dirs)
-train_size = int(0.8 * len(dataset))
-test_size = len(dataset) - train_size
-train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-
-# using dataloader for batching
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
-
-# creating the torch network 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.flatten = nn.Flatten()
-        self.dense1 = nn.Linear(in_features=64*64*3, out_features=100)
-        self.dense2 = nn.Linear(in_features=100, out_features=100)
-        self.dense3 = nn.Linear(in_features=100, out_features=2)
-        
-    def forward(self, x):
-        x = self.flatten(x)
-        x = self.dense1(x)
-        x = self.dense2(x)
-        x = self.dense3(x)
-
-        # softmax activation because we want to predict a class
-        output = F.log_softmax(x, dim=1)
-
-        return output
-
-# defining parametes
-model = Net()
-model.train()
-num_epochs = 10
-loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
-
-# training model and calculating loss
-for n in range(num_epochs):
-    loss_e = 0
-    for tr_images, tr_labels in train_loader:
-        y_pred = model(tr_images)
-        loss = loss_fn(y_pred.float(), tr_labels)
-        loss_e += loss.item()*tr_images.size(0)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-    print(loss_e/len(train_loader.sampler))
+def logsig(x):
+    return 1 / (1 + np.exp(-x))
 
 
-# evaluating the model on the testing dataset
-model.eval()
+def train_test(X, y, network):
+    table = PrettyTable()
+    table.field_names = ["real", "predicted", "raw value"]
+    for _ in range(10000):
+        for input, target in zip(X, y):
+            network.train(input, target)
 
-correct = 0
-total = 0
+    print("real, rounded, raw number")
+    for i, input in enumerate(X):
+        pred = network.forward(input)
+        pred = round(pred, 3)
+        table.add_row([y[i], round(pred), pred])
+    print(table)
+    print()
 
-with torch.no_grad():
-    for images, labels in test_loader:
-        outputs = model(images)
-        # converting fredicted floats to integers
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        # sum of how many integers are the correct labels
-        correct += (predicted == labels).sum().item()
 
-print(f'model accuracy: {100 * correct / total}%')
+class perceptron:
+    def __init__(self, input_size, learning_rate=0.01):
+        self.weights = np.random.uniform(-1, 1, input_size)
+        self.bias = np.random.uniform(-1, 1)
+        self.learning_rate = learning_rate
+        self.inputs = None
+        self.output = None
+
+    def forward(self, inputs):
+        self.inputs = inputs
+        self.output = logsig(np.dot(self.weights, inputs) + self.bias)
+        return self.output
+
+    def update(self, error, inputs):
+        dL_dy = error
+        dy_din = self.output * (1 - self.output)
+        din_dw = inputs
+        grad_weights = dL_dy * dy_din * din_dw
+        grad_bias = dL_dy * dy_din
+        self.weights -= self.learning_rate * grad_weights
+        self.bias -= self.learning_rate * grad_bias
+
+        return grad_bias
+
+
+X = [
+    [0, 0, 0],
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [1, 1, 0],
+    [1, 0, 1],
+    [0, 1, 1],
+    [1, 1, 1],
+]
+
+X = np.array(X)
+
+# x1 ∧ x2 ∧ x3
+y1 = np.array([0, 0, 0, 0, 0, 0, 0, 1])
+
+# x1 ∨ x2 ∨ x3
+y2 = np.array([0, 1, 1, 1, 1, 1, 1, 1])
+
+# ((x1 ∧ ¬x2) ∨ (¬x1 ∧ x2)) ∧ x3
+y3 = np.array([0, 0, 0, 0, 0, 1, 1, 0])
+
+
+class Network:
+    # network for 3 perceptrons
+    def __init__(self, learning_rate=0.001):
+        self.hidden_layer = [
+            perceptron(input_size=3, learning_rate=learning_rate) for _ in range(2)
+        ]
+        self.output_neuron = perceptron(input_size=2, learning_rate=learning_rate)
+
+    def forward(self, inputs):
+        hidden_outputs = np.array(
+            [neuron.forward(inputs) for neuron in self.hidden_layer]
+        )
+        return self.output_neuron.forward(hidden_outputs)
+
+    def train(self, inputs, target):
+        self.forward(inputs)
+
+        output_error = -(target - self.output_neuron.output)
+
+        hidden_outputs = np.array([neuron.output for neuron in self.hidden_layer])
+        probagated_error = self.output_neuron.update(output_error, hidden_outputs)
+
+        for i, neuron in enumerate(self.hidden_layer):
+            # backprobagated error
+            hidden_error = probagated_error * self.output_neuron.weights[i]
+            neuron.update(hidden_error, inputs)
+
+
+network = Network(learning_rate=0.01)
+
+print("Neural Network test for y1")
+train_test(X, y1, network)
+
+# ------------------------------------------------------------------------------------------
+print("Neural Network test for y2")
+train_test(X, y2, network)
+
+# ------------------------------------------------------------------------------------------
+
+print("Neural Network test for y3")
+train_test(X, y3, network)
+
+# ------------------------------------------------------------------------------------------
