@@ -38,12 +38,6 @@ fn client_cache() -> &'static reqwest::Client {
     CLIENT_CACHE.get_or_init(reqwest::Client::new)
 }
 
-static POKEMON_CACHE: OnceLock<Mutex<HashMap<u16, Pokemon>>> = OnceLock::new();
-
-fn pokemon_cache() -> &'static Mutex<HashMap<u16, Pokemon>> {
-    POKEMON_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
 static RUNTIM_CACHE: OnceLock<Mutex<Counter>> = OnceLock::new();
 
 fn runtime_cache() -> &'static Mutex<Counter> {
@@ -262,13 +256,6 @@ impl Pokemon {
 
         let id = rand::rng().random_range(1..=Pokemon::MAX_ID);
 
-        if let Ok(cache) = pokemon_cache().lock()
-            && let Some(pokemon) = cache.get(&id).cloned()
-        {
-            println!("cache hit for id: {id}");
-            return Ok(pokemon);
-        }
-
         // -------------------------- pokemon entry struct --------------------------
 
         #[derive(Debug, Deserialize)]
@@ -404,10 +391,6 @@ impl Pokemon {
             element_types: element_images,
             cry_sound_bytes: ogg_bytes,
         };
-
-        if let Ok(mut cache) = pokemon_cache().lock() {
-            cache.insert(id, pokemon.clone());
-        }
 
         Ok(pokemon)
     }
