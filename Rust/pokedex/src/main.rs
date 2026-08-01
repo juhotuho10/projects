@@ -14,8 +14,6 @@ use iced::{
 
 use bytes::Bytes;
 
-use rand::RngExt;
-
 use std::{
     collections::HashMap,
     io,
@@ -253,8 +251,7 @@ impl Pokemon {
     async fn search() -> Result<Pokemon, Error> {
         let now = Instant::now();
         use serde::Deserialize;
-
-        let id = rand::rng().random_range(1..=Pokemon::MAX_ID);
+        let id = fastrand::u16(1..=Pokemon::MAX_ID);
 
         // -------------------------- pokemon entry struct --------------------------
 
