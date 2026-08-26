@@ -48,8 +48,7 @@ struct Counter {
 }
 impl Counter {
     fn avg(&self) -> u32 {
-        assert!(self.count > 0);
-        self.total / self.count
+        self.total.checked_div(self.count).unwrap_or(0)
     }
     fn add(&mut self, time: u32) {
         self.total += time;
@@ -299,10 +298,8 @@ impl Pokemon {
         let (entry, element_images, frame_bytes, ogg_bytes) = {
             let fetch_pokemon_entry = || {
                 futures::FutureExt::boxed(async move {
-                    {
-                        let url = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
-                        client_cache().get(&url).send().await?.json::<Entry>().await
-                    }
+                    let url = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
+                    client_cache().get(&url).send().await?.json::<Entry>().await
                 })
             };
 
@@ -455,19 +452,18 @@ where
     Fut: Future<Output = Result<T, E>>,
     E: std::fmt::Debug,
 {
-    for attempt in 0..=retries {
+    let mut attempt = 0;
+    loop {
         match f().await {
-            Ok(v) => return Ok(v),
-            Err(e) => {
-                if attempt == retries {
-                    return Err(e);
-                }
-                eprintln!("Attempt {} failed: {:?}", attempt + 1, e);
+            Ok(value) => return Ok(value),
+            Err(error) if attempt == retries => return Err(error),
+            Err(error) => {
+                eprintln!("Attempt {} failed: {:?}", attempt + 1, error);
                 futures_timer::Delay::new(Duration::from_millis(300 * (attempt + 1))).await;
+                attempt += 1;
             }
         }
     }
-    unreachable!()
 }
 
 // Errors
