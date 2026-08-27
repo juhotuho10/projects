@@ -1,7 +1,7 @@
-//#![cfg_attr(
-//    all(target_os = "windows", not(debug_assertions)),
-//    windows_subsystem = "windows"
-//)]
+#![cfg_attr(
+    all(target_os = "windows", not(debug_assertions)),
+    windows_subsystem = "windows"
+)]
 
 use iced::{
     Bottom, Center, Element, Fill, Left, Task, Theme, futures,
@@ -13,6 +13,7 @@ use iced::{
 };
 
 use bytes::Bytes;
+use reqwest::Response;
 
 use std::{
     collections::HashMap,
@@ -32,8 +33,11 @@ fn cache() -> &'static Mutex<HashMap<String, Handle>> {
 
 static CLIENT_CACHE: OnceLock<reqwest::Client> = OnceLock::new();
 
-fn client_cache() -> &'static reqwest::Client {
-    CLIENT_CACHE.get_or_init(reqwest::Client::new)
+fn client_fetch(url: &str) -> impl Future<Output = Result<Response, reqwest::Error>> {
+    CLIENT_CACHE
+        .get_or_init(reqwest::Client::new)
+        .get(url)
+        .send()
 }
 
 static RUNTIM_CACHE: OnceLock<Mutex<Counter>> = OnceLock::new();
@@ -288,29 +292,24 @@ impl Pokemon {
             let sprite_url = format!(
                 "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/{id}.gif"
             );
-            client_cache().get(sprite_url).send().await?.bytes().await
+            client_fetch(&sprite_url).await?.bytes().await
         };
 
         let fetch_pokemon_cry = || async move {
             let ogg_url = format!(
                 "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/{id}.ogg"
             );
-            client_cache().get(&ogg_url).send().await?.bytes().await
+            client_fetch(&ogg_url).await?.bytes().await
         };
 
         let fetch_pokemon_entry = || async move {
-            let url: String = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
-            client_cache().get(&url).send().await?.json::<Entry>().await
+            let entry_url: String = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
+            client_fetch(&entry_url).await?.json::<Entry>().await
         };
 
         let fetch_pokemon_data = || async move {
-            let url = format!("https://pokeapi.co/api/v2/pokemon/{id}");
-            client_cache()
-                .get(&url)
-                .send()
-                .await?
-                .json::<PokemonData>()
-                .await
+            let data_url = format!("https://pokeapi.co/api/v2/pokemon/{id}");
+            client_fetch(&data_url).await?.json::<PokemonData>().await
         };
 
         // Phase 1: all four independent fetches run concurrently, each retried on its own.
@@ -387,7 +386,7 @@ impl Pokemon {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let bytes: bytes::Bytes = client_cache().get(&url).send().await?.bytes().await?;
+            let bytes: bytes::Bytes = client_fetch(&url).await?.bytes().await?;
             let type_handle = Handle::from_bytes(bytes);
 
             if let Ok(mut cache_map) = cache().lock() {
