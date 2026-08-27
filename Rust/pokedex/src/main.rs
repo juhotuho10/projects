@@ -95,12 +95,6 @@ enum Message {
     PokemonFound(Result<Pokemon, Error>),
 }
 
-#[derive(Debug, Clone)]
-enum PokemonTypes {
-    Single { type_1: Handle },
-    Double { type_1: Handle, type_2: Handle },
-}
-
 // state of the program
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
@@ -203,7 +197,7 @@ struct Pokemon {
     name: String,
     description: String,
     gif_frames: Arc<Frames>,
-    element_types: PokemonTypes,
+    element_types: Vec<Handle>,
     cry_sound_bytes: Option<Bytes>,
 }
 
@@ -216,16 +210,16 @@ impl Pokemon {
             Image::new(handle).width(42.0).height(20.0)
         }
 
-        let type_image_row = match &self.element_types {
-            PokemonTypes::Single { type_1 } => row![type_image(type_1.clone())],
-            PokemonTypes::Double { type_1, type_2 } => {
-                row![type_image(type_1.clone()), type_image(type_2.clone())]
-            }
-        };
+        let type_image_row = row(self
+            .element_types
+            .iter()
+            .map(|handle| type_image(handle.clone()).into()))
+        .spacing(5)
+        .align_y(Bottom);
 
         row![
             column![
-                type_image_row.spacing(5).align_y(Bottom),
+                type_image_row,
                 container(Gif::new(&self.gif_frames).content_fit(iced::ContentFit::Contain))
                     .width(400.0)
                     .height(220.0)
@@ -255,7 +249,6 @@ impl Pokemon {
         let id = fastrand::u16(1..=Pokemon::MAX_ID);
 
         // -------------------------- pokemon entry struct --------------------------
-
         #[derive(Debug, Deserialize)]
         struct Entry {
             name: String,
@@ -274,7 +267,6 @@ impl Pokemon {
         }
 
         // -------------------------- pokemon data struct --------------------------
-
         #[derive(Debug, Deserialize)]
         struct PokemonData {
             types: Vec<ElementType>,
@@ -290,122 +282,83 @@ impl Pokemon {
         struct TypeInfo {
             name: String,
         }
-
         // -------------------------------------------------------------------------
 
-        println!("getting id: {id}");
+        let sprite_url = format!(
+            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/{id}.gif"
+        );
+        let ogg_url = format!(
+            "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/{id}.ogg"
+        );
 
-        let (entry, element_images, frame_bytes, ogg_bytes) = {
-            let fetch_pokemon_entry = || {
-                futures::FutureExt::boxed(async move {
-                    let url = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
-                    client_cache().get(&url).send().await?.json::<Entry>().await
-                })
-            };
-
-            let fetch_element_images = || {
-                futures::FutureExt::boxed(async move {
-                    let url = format!("https://pokeapi.co/api/v2/pokemon/{id}");
-                    let pokemon_data = client_cache()
-                        .get(&url)
-                        .send()
-                        .await?
-                        .json::<PokemonData>()
-                        .await?;
-
-                    let mut type_names: Vec<&str> = pokemon_data
-                        .types
-                        .iter()
-                        .map(|x| x.type_info.name.as_str())
-                        .collect();
-
-                    type_names.sort();
-
-                    let image_futures = type_names.into_iter().map(Self::fetch_type_images);
-
-                    let mut element_images: Vec<Handle> =
-                        futures::future::try_join_all(image_futures).await?;
-
-                    match element_images.len() {
-                        1 => Ok(PokemonTypes::Single {
-                            type_1: element_images.remove(0),
-                        }),
-                        2 => Ok(PokemonTypes::Double {
-                            type_1: element_images.remove(0),
-                            type_2: element_images.remove(0),
-                        }),
-                        _ => unreachable!("Pokémons have 1 or 2 types"),
-                    }
-                })
-            };
-
-            let fetch_ogg = async {
-                let url = format!(
-                    "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/{id}.ogg"
-                );
-                let bytes: bytes::Bytes = client_cache().get(&url).send().await?.bytes().await?;
-                Ok(bytes)
-            };
-
-            futures::future::try_join4(
-                async_retries(fetch_pokemon_entry, 4),
-                async_retries(fetch_element_images, 4),
-                Self::fetch_pokemon_image(id),
-                fetch_ogg,
-            )
-            .await?
+        let fetch_pokemon_entry = || async move {
+            let url: String = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
+            client_cache().get(&url).send().await?.json::<Entry>().await
         };
 
-        let filtered_description = {
-            let description = entry
-                .flavor_text_entries
-                .iter()
-                .find(|text| text.language.name == "en")
-                .ok_or(Error::LanguageError)?;
-
-            description
-                .flavor_text
-                .replace("-\n", "")
-                .replace("\u{ad}\n", "")
-                .chars()
-                .map(|c| if c.is_control() { ' ' } else { c })
-                .collect()
+        let fetch_pokemon_data = || async move {
+            let url = format!("https://pokeapi.co/api/v2/pokemon/{id}");
+            client_cache()
+                .get(&url)
+                .send()
+                .await?
+                .json::<PokemonData>()
+                .await
         };
 
-        let frames = Frames::from_bytes(frame_bytes).map_err(|_| Error::APIError)?;
+        async fn fetch_bytes(url: &str) -> Result<Bytes, reqwest::Error> {
+            client_cache().get(url).send().await?.bytes().await
+        }
+
+        // Phase 1: all four independent fetches run concurrently, each retried on its own.
+        let (entry, pokemon_data, frame_bytes, ogg_bytes) = futures::try_join!(
+            async_retries(fetch_pokemon_entry, 4),
+            async_retries(fetch_pokemon_data, 4),
+            async_retries(|| fetch_bytes(&sprite_url), 4),
+            async_retries(|| fetch_bytes(&ogg_url), 4),
+        )?;
+
+        // Phase 2: type images depend on pokemon_data; fetch concurrently (cached after first use).
+        let mut type_names: Vec<&str> = pokemon_data
+            .types
+            .iter()
+            .map(|x| x.type_info.name.as_str())
+            .collect();
+        type_names.sort();
+
+        let element_images =
+            futures::future::try_join_all(type_names.into_iter().map(Self::fetch_type_images))
+                .await?;
+
+        let description = entry
+            .flavor_text_entries
+            .into_iter()
+            .find(|t| t.language.name == "en")
+            .ok_or(Error::LanguageError)?;
+
+        let filtered_description = description
+            .flavor_text
+            .replace("-\n", "")
+            .replace("\u{ad}\n", "")
+            .chars()
+            .map(|c| if c.is_control() { ' ' } else { c })
+            .collect();
+        let frames = Frames::from_bytes(frame_bytes.into()).map_err(|_| Error::APIError)?;
 
         let time_taken = now.elapsed().as_millis();
         let mut cached_time = runtime_cache().lock().unwrap();
         cached_time.add(time_taken as u32);
 
         println!("avg time taken: {}", cached_time.avg());
-        let pokemon = Pokemon {
+
+        Ok(Pokemon {
             number: id,
             name: entry.name.to_uppercase(),
             description: filtered_description,
             gif_frames: Arc::new(frames),
             element_types: element_images,
             cry_sound_bytes: Some(ogg_bytes),
-        };
-
-        Ok(pokemon)
-    }
-
-    // for getting pokemon IMG to display
-    async fn fetch_pokemon_image(id: u16) -> Result<Vec<u8>, reqwest::Error> {
-        let url = format!(
-            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/{id}.gif"
-        );
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let bytes: bytes::Bytes = client_cache().get(&url).send().await?.bytes().await?;
-
-            Ok(bytes.to_vec())
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        Ok(Handle::from_path(url))
+        })
     }
 
     // for getting pokemon type IMG to display
