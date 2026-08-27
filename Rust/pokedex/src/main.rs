@@ -1,7 +1,7 @@
-#![cfg_attr(
-    all(target_os = "windows", not(debug_assertions)),
-    windows_subsystem = "windows"
-)]
+//#![cfg_attr(
+//    all(target_os = "windows", not(debug_assertions)),
+//    windows_subsystem = "windows"
+//)]
 
 use iced::{
     Bottom, Center, Element, Fill, Left, Task, Theme, futures,
@@ -284,12 +284,19 @@ impl Pokemon {
         }
         // -------------------------------------------------------------------------
 
-        let sprite_url = format!(
-            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/{id}.gif"
-        );
-        let ogg_url = format!(
-            "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/{id}.ogg"
-        );
+        let fetch_pokemon_sprite = || async move {
+            let sprite_url = format!(
+                "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/{id}.gif"
+            );
+            client_cache().get(sprite_url).send().await?.bytes().await
+        };
+
+        let fetch_pokemon_cry = || async move {
+            let ogg_url = format!(
+                "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/{id}.ogg"
+            );
+            client_cache().get(&ogg_url).send().await?.bytes().await
+        };
 
         let fetch_pokemon_entry = || async move {
             let url: String = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
@@ -306,16 +313,12 @@ impl Pokemon {
                 .await
         };
 
-        async fn fetch_bytes(url: &str) -> Result<Bytes, reqwest::Error> {
-            client_cache().get(url).send().await?.bytes().await
-        }
-
         // Phase 1: all four independent fetches run concurrently, each retried on its own.
         let (entry, pokemon_data, frame_bytes, ogg_bytes) = futures::try_join!(
             async_retries(fetch_pokemon_entry, 4),
             async_retries(fetch_pokemon_data, 4),
-            async_retries(|| fetch_bytes(&sprite_url), 4),
-            async_retries(|| fetch_bytes(&ogg_url), 4),
+            async_retries(fetch_pokemon_sprite, 4),
+            async_retries(fetch_pokemon_cry, 4),
         )?;
 
         // Phase 2: type images depend on pokemon_data; fetch concurrently (cached after first use).
