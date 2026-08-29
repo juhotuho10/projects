@@ -65,23 +65,24 @@ struct SinkHandle {
     sink: Player,
 }
 
-static STREAM_HANDLE: OnceLock<SinkHandle> = OnceLock::new();
+static STREAM_HANDLE: OnceLock<Option<SinkHandle>> = OnceLock::new();
 
-fn get_sink() -> &'static SinkHandle {
-    STREAM_HANDLE.get_or_init(|| {
-        let mut stream_handle =
-            DeviceSinkBuilder::open_default_sink().expect("Failed to open default audio sink");
-
-        stream_handle.log_on_drop(false);
-
-        let sink = Player::connect_new(stream_handle.mixer());
-        sink.set_volume(0.02);
-
-        SinkHandle {
-            _handle: stream_handle,
-            sink,
-        }
-    })
+fn get_sink() -> Option<&'static SinkHandle> {
+    STREAM_HANDLE
+        .get_or_init(|| {
+            DeviceSinkBuilder::open_default_sink()
+                .ok()
+                .map(|mut stream_handle| {
+                    stream_handle.log_on_drop(false);
+                    let sink = Player::connect_new(stream_handle.mixer());
+                    sink.set_volume(0.02);
+                    SinkHandle {
+                        _handle: stream_handle,
+                        sink,
+                    }
+                })
+        })
+        .as_ref()
 }
 
 pub fn main() -> iced::Result {
@@ -122,10 +123,11 @@ impl Pokedex {
     }
 
     fn play_ogg_from_bytes(bytes: Option<Bytes>) {
-        if let Some(ogg_bytes) = bytes
+        if let Some(sink_handle) = get_sink()
+            && let Some(ogg_bytes) = bytes
             && let Ok(source) = Decoder::new(io::Cursor::new(ogg_bytes))
         {
-            let sink = &get_sink().sink;
+            let sink = &sink_handle.sink;
             sink.stop();
             sink.append(source);
         }
